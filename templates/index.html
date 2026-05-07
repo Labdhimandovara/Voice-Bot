@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Hindi + Telugu Voice Bot</title>
+    <link rel="stylesheet" href="/static/style.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <div class="brand-dot">🗣</div>
+      <h1>Voice<span>Bot</span></h1>
+    </div>
+    <p class="subtitle">Hindi + Telugu Interactive Voice Assistant</p>
+    <div class="lang-badges">
+      <span class="badge active">हिंदी</span>
+      <span class="badge active">తెలుగు</span>
+      <span class="badge">Mixed</span>
+    </div>
+  </header>
+
+  <div class="card">
+    <div id="chat-box">
+      <div class="msg-system">👋 Namaste! Click the mic and speak in Hindi or Telugu.</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="status-bar">
+      <div class="status-dot" id="statusDot"></div>
+      <span id="statusText">Ready to listen</span>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="controls">
+      <button id="micBtn">🎤 &nbsp;Start Listening</button>
+      <button class="icon-btn" id="logsBtn" title="View Logs">📋</button>
+      <button class="icon-btn" id="clearBtn" title="Clear Chat">🗑</button>
+    </div>
+  </div>
+
+  <div class="logs-toggle">
+    <div class="logs-header" id="logsHeader">
+      <span>📋 Conversation Logs</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="logs-body" id="logsBody"></div>
+  </div>
+
+  <footer>SANKAR GROUP — Voice Bot Assignment</footer>
+
+  <script>
+    const micBtn     = document.getElementById("micBtn");
+    const chatBox    = document.getElementById("chat-box");
+    const statusDot  = document.getElementById("statusDot");
+    const statusText = document.getElementById("statusText");
+    const logsHeader = document.getElementById("logsHeader");
+    const logsBody   = document.getElementById("logsBody");
+    const clearBtn   = document.getElementById("clearBtn");
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      appendSystem("⚠️ Your browser doesn't support Speech Recognition. Use Chrome.");
+    }
+    const recognition = new SpeechRecognition();
+    recognition.lang = "hi-IN";
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    function setStatus(state, text) {
+      statusDot.className = "status-dot " + state;
+      statusText.textContent = text;
+    }
+
+    let isListening = false;
+    micBtn.addEventListener("click", () => {
+      if (isListening) { recognition.stop(); return; }
+      recognition.start();
+    });
+
+    recognition.onstart = () => {
+      isListening = true;
+      micBtn.classList.add("listening");
+      micBtn.textContent = "🎧  Listening...";
+      setStatus("listening", "Listening — speak now...");
+    };
+
+    recognition.onend = () => {
+      isListening = false;
+      micBtn.classList.remove("listening");
+      micBtn.innerHTML = "🎤 &nbsp;Start Listening";
+      if (statusText.textContent === "Listening — speak now...") {
+        setStatus("", "Ready to listen");
+      }
+    };
+
+    recognition.onresult = function(event) {
+      const user_text = event.results[0][0].transcript;
+      appendMsg("user", user_text);
+      setStatus("processing", "Processing...");
+      sendToServer(user_text);
+    };
+
+    recognition.onerror = function(event) {
+      setStatus("", "Error: " + event.error);
+      appendSystem("⚠️ Mic error: " + event.error);
+    };
+
+    function appendMsg(role, text) {
+      const wrap = document.createElement("div");
+      wrap.className = "msg-wrap " + role;
+      const label = document.createElement("div");
+      label.className = "msg-label";
+      label.textContent = role === "user" ? "You" : "Bot";
+      const bubble = document.createElement("div");
+      bubble.className = "msg-bubble";
+      bubble.textContent = text;
+      wrap.appendChild(label);
+      wrap.appendChild(bubble);
+      chatBox.appendChild(wrap);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function appendSystem(text) {
+      const d = document.createElement("div");
+      d.className = "msg-system";
+      d.textContent = text;
+      chatBox.appendChild(d);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    async function sendToServer(user_text) {
+      try {
+        const response = await fetch("/process", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user_text })
+        });
+        if (!response.ok) throw new Error("Server error " + response.status);
+        const data = await response.json();
+        appendMsg("bot", data.bot_text);
+        if (data.audio_url) {
+          setStatus("speaking", "Bot is speaking...");
+          playAudio(data.audio_url);
+        } else {
+          setStatus("", "Ready to listen");
+        }
+      } catch (err) {
+        appendSystem("❌ Error: " + err.message);
+        setStatus("", "Ready to listen");
+      }
+    }
+
+    function playAudio(url) {
+      const audio = new Audio(url);
+      audio.play().catch(e => {
+        appendSystem("🔇 Audio blocked. Click anywhere first, then try again.");
+        setStatus("", "Ready to listen");
+      });
+      audio.onended = () => setStatus("", "Ready to listen");
+    }
+
+    clearBtn.addEventListener("click", async () => {
+      chatBox.innerHTML = '<div class="msg-system">Chat cleared. Say Namaste to start!</div>';
+      await fetch("/clear_logs", { method: "POST" });
+      logsBody.innerHTML = "";
+    });
+
+    logsHeader.addEventListener("click", async () => {
+      const isOpen = logsBody.classList.toggle("open");
+      logsHeader.classList.toggle("open", isOpen);
+      if (isOpen) {
+        const res = await fetch("/logs");
+        const logs = await res.json();
+        logsBody.innerHTML = "";
+        if (!logs.length) {
+          logsBody.innerHTML = '<div class="log-entry" style="color:#888">No logs yet.</div>';
+        } else {
+          logs.slice().reverse().forEach(entry => {
+            const div = document.createElement("div");
+            div.className = "log-entry";
+            div.innerHTML = `
+              <div class="log-time">${entry.timestamp}</div>
+              <div class="log-user">👤 ${entry.user}</div>
+              <div class="log-bot">🤖 ${entry.bot}</div>
+            `;
+            logsBody.appendChild(div);
+          });
+        }
+      }
+    });
+  </script>
+</body>
+</html>
