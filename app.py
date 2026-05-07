@@ -20,59 +20,72 @@ conversation_history = []
 def bot_reply(user_text):
     text = user_text.lower().strip()
 
-    # Greetings
-    if any(w in text for w in ["namaste", "namaskar", "namaskaram", "hello", "hi", "hii", "hey"]):
+    # Greetings — English + Devanagari
+    if any(w in text for w in ["namaste", "namaskar", "hello", "hi", "hey",
+                                "नमस्ते", "नमस्कार", "हेलो", "हाय"]):
         return "Namaste ji! Aapko kaise help chahiye? Meeru ela help cheyyagalanu?"
 
-    # Name introduction
-    if any(w in text for w in ["peru", "naam", "name", "naa peru", "mera naam", "my name"]):
-        # Try to extract name
+    # Name — English + Devanagari
+    if any(w in text for w in ["mera naam", "my name", "naa peru", "naam",
+                                "मेरा नाम", "नाम", "peru"]):
         words = text.split()
-        for kw in ["peru", "naam", "name", "is", "am"]:
+        for kw in ["naam", "name", "peru", "is", "am", "नाम", "हूं", "हूँ"]:
             if kw in words:
                 idx = words.index(kw)
                 if idx + 1 < len(words):
                     name = words[idx + 1].capitalize()
-                    return f"Namaste {name} ji! Aapko kaise help chahiye? Meeru ela assist cheyyagalanu?"
+                    return f"Namaste {name} ji! Bahut achha naam hai. Meeru ela assist cheyyagalanu?"
         return "Mee peru cheppinanduku dhanyavaadaalu! Meeru ela help cheyyagalanu?"
 
-    # Demo request
-    if any(w in text for w in ["demo", "kavali", "chahiye", "show", "software demo"]):
-        return "Sure! Meeku oka demo schedule chestanu. Mee convenient time cheppagalara? We will arrange it for you!"
+    # Demo
+    if any(w in text for w in ["demo", "kavali", "dikhao", "show",
+                                "डेमो", "दिखाओ", "चाहिए"]):
+        return "Sure! Meeku oka demo schedule chestanu. Mee convenient time cheppagalara?"
 
     # Help
-    if any(w in text for w in ["help", "sahaya", "sahayam", "madad", "assist"]):
-        return "Bilkul! Hum aapki poori madad karenge. Meeru meeku anni vishayaallo help chestamu. Tell me what you need!"
+    if any(w in text for w in ["help", "madad", "sahaya", "problem",
+                                "मदद", "सहायता", "हेल्प", "प्रॉब्लम"]):
+        return "Bilkul! Hum aapki poori madad karenge. Meeru meeku help chestamu. Kya problem hai?"
 
     # How are you
-    if any(w in text for w in ["kaise ho", "ela unnaru", "how are you", "kaisa", "kaisay"]):
-        return "Main bilkul theek hoon, shukriya! Nenu chala bagunnanu. Aap batao, meeru ela help cheyyagalanu?"
+    if any(w in text for w in ["kaise ho", "how are you", "ela unnaru",
+                                "कैसे हो", "कैसे हैं", "theek ho"]):
+        return "Main bilkul theek hoon! Nenu chala bagunnanu. Meeru ela help cheyyagalanu?"
 
-    # Product / service inquiry
-    if any(w in text for w in ["product", "service", "kya hai", "entundi", "about", "information", "info"]):
-        return "Maa products chala baaguntayi! We offer software solutions, demos, and support. Meeru detailed information share chestamu. Demo book cheyyalante cheppandi!"
+    # Price
+    if any(w in text for w in ["price", "cost", "fee", "kitna", "paisa",
+                                "कीमत", "पैसा", "चार्ज", "कितना"]):
+        return "Pricing ke liye maa team se baat karein. Demo schedule cheste sab details milenge!"
 
-    # Price / cost
-    if any(w in text for w in ["price", "cost", "charge", "dhara", "fee", "kitna"]):
-        return "Pricing maa team tho discuss cheyyadam better avutundi. Oka demo schedule cheste, anni details explain chestamu!"
+    # Thanks
+    if any(w in text for w in ["thanks", "thank you", "shukriya", "dhanyavaad",
+                                "धन्यवाद", "शुक्रिया", "bahut achha", "बहुत अच्छा"]):
+        return "Aapka swagat hai! Meeru eppudu ready ga untamu. Inkemi kavali?"
 
-    # Thank you
-    if any(w in text for w in ["thanks", "dhanyavaad", "shukriya", "thank you", "tq"]):
-        return "Aapka swagat hai! Meeru eppudu help cheyyaadaniki ready ga unnamu. Inkemi help kavali?"
+    # Bye
+    if any(w in text for w in ["bye", "goodbye", "alvida", "baad mein",
+                                "अलविदा", "बाय", "फिर मिलेंगे"]):
+        return "Dhanyavaadaalu! Have a great day. Meeru eppudu ready ga untamu!"
 
-    # Bye / goodbye
-    if any(w in text for w in ["bye", "goodbye", "alvida", "ciao", "ok bye"]):
-        return "Dhanyavaadaalu maa tho maatladindi! Have a great day. Meeru eppudu help cheyyaadaniki ready ga unnamu!"
-
-    # Time / date
-    if any(w in text for w in ["time", "samayam", "date", "today"]):
+    # Time/date
+    if any(w in text for w in ["time", "date", "today", "samayam",
+                                "टाइम", "समय", "तारीख", "आज"]):
         now = datetime.datetime.now()
         return f"Ippudu time {now.strftime('%I:%M %p')}, date {now.strftime('%d %B %Y')} undi."
 
-    # Default fallback
-    return "Sare, meeru cheppandi — enduku help kavali? Aap bata sakte hain, hum haazir hain!"
+    # Appointment
+    if any(w in text for w in ["appointment", "book", "meeting", "schedule", "milna",
+                                "अपॉइंटमेंट", "मीटिंग", "बुक"]):
+        return "Zaroor! Mee appointment book chestamu. Mee preferred date and time cheppandi!"
 
-
+    # Fallback — rotates
+    fallbacks = [
+        "Sare, meeru cheppandi — enduku help kavali? Hum haazir hain!",
+        "Kya aap thoda aur detail mein bata sakte hain? Meeru better help cheyyagalamu!",
+        "Samajh nahi aaya. Demo kavali? Ya kuch aur poochna hai?",
+        "Aapka sawaal clearly nahi aaya. Dobara bol sakte hain?"
+    ]
+    return fallbacks[len(conversation_history) % len(fallbacks)]
 # ─────────────────────────────────────────────
 #  LOGGING
 # ─────────────────────────────────────────────
@@ -178,6 +191,7 @@ def clear_logs():
             os.remove(f)
     conversation_history.clear()
     return jsonify({"status": "cleared"})
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
